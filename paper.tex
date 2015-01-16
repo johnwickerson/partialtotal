@@ -1,0 +1,335 @@
+\documentclass{llncs}
+
+\pdfpagesattr{/CropBox [92 72 523 738]} % LNCS page: 152x235 mm
+
+\title{Partial and total correctness \\ as greatest and least fixed points}
+\author{John Wickerson}
+\institute{Imperial College London}
+\date{\today}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{../../mathpartir}
+
+\usepackage{../../MathUnicode}
+\usepackage{mathtools}
+\usepackage{bm}
+
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{decorations.pathreplacing}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8x]{inputenc}
+
+\newcommand{\prov}[1][]{\ifthenelse{\equal{#1}{}}{\vdash}{\vdash_{\mbox{\sf\scriptsize #1}}}}
+\newcommand{\seqspec}[3]{\{#1\}\,#2\,\{#3\}}
+\newcommand\boldleftbracket{\phantom{\{}\mathllap{\bm{[}}}
+\newcommand\boldrightbracket{\mathrlap{\bm{]}}\phantom{\}}}
+\newcommand{\totalspec}[3]{\boldleftbracket #1\boldrightbracket\,#2\,\boldleftbracket#3\boldrightbracket}
+
+\renewcommand{\parallel}{\mathbin{\mathsf{ll}}}
+\newcommand{\semicolon}{\mathbin{\mathbf{;}}}
+\newcommand{\Skip}{\mathop{\mathtt{skip}}}
+
+\newcommand\squigarrow[1]{
+\tikz[rotate=#1]
+\draw [->, line join=round, decorate, 
+  decoration={zigzag, segment length=4, amplitude=.9,
+  post=lineto, post length=2pt}] (0,0) -- (0.3,0);
+}
+\newcommand\trans{\rightsquigarrow}
+\newcommand\Config{\mathsf{Config}}
+\newcommand\State{\mathsf{State}}
+\newcommand\Cmd{\mathsf{Cmd}}
+\newcommand\Next{\mathit{next}}
+\newcommand\SafeOne{\varphi}
+\newcommand\terminates{\mathit{always\text{-}terminates}}
+\newcommand\dom{\mathrm{dom}}
+\newcommand\length{\mathrm{len}}
+\newcommand\fst{\mathrm{fst}}
+\newcommand\snd{\mathrm{snd}}
+\newcommand\Safe{\mathit{safe}}
+\newcommand\tracesfrom{\mathit{traces}}
+\newcommand\BOX{\mathop{\Box}}
+\newcommand\DIAMOND{\mathop{\Diamond}}
+\newcommand\pow{\mathcal{P}}
+\newcommand\nat{\mathbb{N}}
+\newcommand\undef{\bot}
+\newcommand\stuck[1]{\mathit{stuck}#1}
+\newcommand\config[2]{\langle #1,#2\rangle}
+\newcommand\infinite{\mathit{infinite}}
+\newcommand\finite{\mathit{finite}}
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{plain}
+\pagestyle{plain}
+
+\begin{abstract}
+I explain how the partial correctness interpretation of a Hoare triple can be characterised as the greatest fixed point of a function, and how the total correctness interpretation can be seen as the least fixed point of the same function. In the latter case, I provide a necessary and sufficient condition for the characterisation to be accurate: that the programming language admits no infinite branching.
+\end{abstract}
+
+\section{Introduction}
+
+In the context of Hoare Logic~\cite{hoare69}, a program satisfies a \emph{total correctness} specification when each of its traces from state that satisfies the given precondition reaches a terminal state satisfying the given postcondition within a finite number of steps. That program satisfies a \emph{partial correctness} specification when each of its traces either meets the requirement above or is infinite.
+
+Meanwhile, in the context of order theory, an object is in the \emph{least fixed point} of a continuous function if, roughly speaking, it can be shown meet some condition within a finite number of iterations. That object is in the \emph{greatest fixed point} if it is in the least fixed point or is, in some sense, infinite.
+
+The descriptions above have been designed to suggest a connection between total/partial correctness and least/greatest fixed points. This paper seeks to state this connection precisely, and investigate conditions under which it holds. 
+
+Section 3 provides characterisations of partial and total correctness, that differ only in that the former takes a function's greatest fixed point where the latter takes its least. Section 4 describes a condition that is necessary for the fixed point characterisation of total correctness to be accurate: namely, that there is no infinite branching.
+
+\section{Preliminaries}
+
+We assume a small-step transition relation $\trans$ between configurations $C=\config{c}{σ}$, which comprise a command $c ∈ \Cmd$ and a state $σ ∈ \State$. Let $\Config = \Cmd × \State$ be the set of all configurations. We use the abbreviation $\Next(C) \eqdef \{C'\ldotp C \rightsquigarrow C'\}$, and we write $\stuck{(C)}$ if $C$ admits no further transitions. The functions $\fst$ and $\snd$ serve to project the components of a pair. 
+
+\subsubsection{Modal-$μ$ calculus} We employ the following constructions from the modal-$μ$ calculus to describe properties of our transition relation. In the following, we suppose that $p ∈ \pow(\Config)$ and that $\varphi:\pow(\Config) → \pow(\Config)$ is a monotone function.
+\[\begin{array}{r@{~~}c@{~~}l}
+\BOX p & = & \{C \mid ∀C'∈\Next(C)\ldotp C' ∈ p\} \\
+\DIAMOND p & = & \{C \mid ∃C'∈\Next(C)\ldotp C' ∈ p\} \\
+μX\ldotp \varphi(X) & = & \bigcap\{S\mid \varphi(S) ⊆ S\} \\
+νX\ldotp \varphi(X) & = & \bigcup\{S\mid S ⊆ \varphi(S)\}
+\end{array}\]
+
+\subsubsection{Possibly-infinite sequences} A \emph{possibly-infinite $X$-sequence} is a partial function $π : \nat → X ∪ \{\undef\}$
+whose domain of definition is either the entirety of $\nat$ or an initial subset thereof. In the latter case, we define $\length(π) = j+1$ when $j$ is the greatest natural in $π$'s domain.
+
+\subsubsection{Traces} A trace is a possibly-infinite sequence of configurations, successively related by $\trans$. The set of traces beginning from a configuration $C$, written $\tracesfrom(C)$, comprises those sequences $\pi$ for which $π_0 = C$ and for all $i$:
+\begin{eqnarray*}
+π_{i+1} = \undef & ~~\text{iff}~~ & \text{$π_i = \undef$ or $\stuck{(π_i)}$} \\
+π_{i+1} ∈ \Next(C) & ~~\text{iff}~~ & \text{not $\stuck{(π_i)}$}
+\end{eqnarray*}
+We write $π_i$ instead of the usual $π(i)$ to save space.
+
+\subsubsection{Termination} A configuration $C$ \emph{always terminates} if every trace from $C$ reaches a terminal configuration.
+\[
+\begin{array}{r@{~~}c@{~~}l}
+  C ∈ \terminates &\eqdef& ∀π ∈ \tracesfrom(C)．∃j>0．\length(π) = j
+\end{array}
+\]
+
+\subsubsection{Safe configurations} If $Q ∈ \pow(\State)$ is a postcondition, we say that a configuration $C$ is \emph{safe for $Q$}, written $C ∈ \Safe_Q$, if whenever it reaches a terminal configuration, the state is in $Q$.
+\begin{eqnarray*}
+C ∈ \Safe_Q &\eqdef& ∀c',σ'．((C \trans^* \config{c'}{σ'}) ∧ \stuck{\config{c'}{σ'}}) ⇒ σ' ∈ Q
+\end{eqnarray*}
+
+\subsubsection{Partial and total correctness} Suppose $P,Q ∈ \pow(\State)$ and $c ∈ \Cmd$. We write $\seqspec{P}c{Q}$ to mean that whenever $c$ is executed from a state in $P$, then whenever it reaches a terminal configuration, the state is in $Q$. We write $\totalspec{P}c{Q}$ to mean that whenever $c$ is executed from a state in $P$, then it reaches a terminal configuration, and whenever it reaches a terminal configuration, the state is in $Q$.
+\[
+\begin{array}{r@{~~}c@{~~}l}
+\seqspec{P}c{Q} &\eqdef& ∀σ ∈ P．\config{c}{σ} ∈ \Safe_Q \\
+\totalspec{P}c{Q} &\eqdef& ∀σ ∈ P．\config{c}{σ} ∈ \terminates ∩ \Safe_Q
+\end{array}
+\]
+
+\section{Main result}
+
+\begin{theorem} Assuming finite branching -- that is, that $\Next(C)$ is finite for every $C$ -- partial correctness and total correctness can be characterised as follows.
+\begin{eqnarray}
+\label{thm1_pc} \seqspec{P}c{Q} & ~⇔~ & (\{c\}×P) ⊆ νX\ldotp \SafeOne_Q(X) \\
+\label{thm1_tc} \totalspec{P}c{Q} & ~⇔~ & (\{c\}×P) ⊆ μX\ldotp \SafeOne_Q(X) 
+\end{eqnarray}
+where $\SafeOne_Q(X)$ is the set of configurations for which the state is in $Q$ if the configuration is terminal, and
+every next configuration is in $X$:
+\[
+\begin{array}{r@{~~}c@{~~}l}
+\SafeOne_Q(X) &\eqdef& \{\config{c}{σ}\mid  \stuck{\config{c}{σ}} ⇒ σ ∈ Q\} ∩ \Box X.
+\end{array}
+\]
+\end{theorem}
+
+\begin{proof}
+We begin with the fixed point characterisation of partial correctness. To prove \eqref{thm1_pc}, it suffices to prove
+\begin{eqnarray*}
+\Safe_Q &=& νX\ldotp \SafeOne_Q(X).
+\end{eqnarray*}
+For the $(⊆)$ direction, we show that $\Safe_Q$ is a post-fixed point (that is, $\Safe_Q ⊆ \SafeOne_Q (\Safe_Q)$), and immediately deduce that it is below the \emph{greatest} post-fixed point.
+
+In showing the $(⊇)$ direction, we observe that since $\SafeOne_Q$ preserves greatest lower bounds, the greatest fixed point can be constructed as the intersection of a series of approximants:
+\begin{eqnarray*}
+νX\ldotp \SafeOne_Q(X) &=& \bigcap_{n∈\nat}\left(\SafeOne_Q^n(\Config)\right).
+\end{eqnarray*}
+
+The intuition is that the $k$th approximant only contains configurations for which every trace that terminates in fewer than $k$ steps satisfies the postcondition when it does so.
+
+We now turn to the fixed point characterisation of total correctness. To prove \eqref{thm1_tc}, it suffices to prove
+\[
+∀C ∈ \SafeOne_Q^k (\Config). ∀π ∈ \tracesfrom(C)．∀j<k．\length(π) = j+1 ⇒ \snd (π_j) ∈ Q
+\] 
+which can be dispatched via mathematical induction on $k$.
+
+It suffices to show that
+\begin{eqnarray*}
+\Safe_Q ∩ \terminates &=& μX\ldotp \SafeOne_Q(X).
+\end{eqnarray*}
+For the $(⊇)$ direction, we show that $\Safe_Q$ is a pre-fixed point (that is, $\SafeOne_Q (\Safe_Q) ⊆ \Safe_Q$), and immediately deduce that it is above the \emph{least} pre-fixed point.
+
+In showing the $(⊆)$ direction, we observe that since $\SafeOne_Q$ preserves least upper bounds (this relies on the finitary nature of $\Next(C)$), the least fixed point can be constructed as the union of a series of approximants:
+\begin{eqnarray*}
+μX\ldotp \SafeOne_Q(X) &=& \bigcup_{n∈\nat}\left(\SafeOne_Q^n(∅)\right).
+\end{eqnarray*}
+The intuition is that the $k$th approximant contains all configurations for which every trace terminates in fewer than $k$ steps and satisfies the postcondition when it does so. 
+
+It remains then to show
+\[
+∀C．(∀π ∈ \tracesfrom(C)． ∃j < k．\length(π) = j+1 ∧ \snd (π_j) ∈ Q) ⇒ C ∈ \SafeOne_Q^{k+1}(\emptyset)
+\]
+which can be dispatched via mathematical induction on $k$.
+\end{proof}
+
+\section{Proof mechanisation}
+
+The proof presented in the previous section has been formalised in the Isabelle theorem prover, with the exception of the following lemma, which has currently only been proved `by hand'. It states that in the absence of infinite branching, every command that always terminates has a longest trace.
+\begin{lemma}
+If $\Next(C)$ is finite for all $C$, and $C_0 ∈ \terminates$, then there exists an upper bound $M$ for which $∀π ∈ \tracesfrom(C_0)．∃j≤M．\length(π) = j$.
+\end{lemma}
+The lemma holds because $\tracesfrom(C_0)$ is a finite set; this observation in turn rests on K\H{o}nig's infinity lemma.
+
+\section{On infinite branching}
+
+If the $\trans$ relation allows infinite branching -- that is, if a configuration can have infinitely many next configurations to choose from -- then the least fixed point calculation does not coincide with total correctness. The technical reason for the failure is that $\SafeOne_Q$ no longer preserves least upper bounds. Intuitively, the failure can be explained by the following counterexample.
+\[
+\begin{tikzpicture}
+\node[draw] (c0) at (3,0) {$C_0$};
+\node[draw] (c21) at (1,1) {$C_1$};
+\node[draw] (c22) at (1,2) {\phantom{$C_0$}};
+\node[draw] (c31) at (2,1) {$C_2$};
+\node[draw] (c32) at (2,2) {\phantom{$C_0$}};
+\node[draw] (c33) at (2,3) {\phantom{$C_0$}};
+\node[draw] (c11) at (3,1) {$C_3$};
+\node[draw] (c12) at (3,2) {\phantom{$C_0$}};
+\node[draw] (c13) at (3,3) {\phantom{$C_0$}};
+\node[draw] (c14) at (3,4) {\phantom{$C_0$}};
+\node             at (4,1) {$\dots$};
+\node[draw] (c41) at (5,1) {$C_k$};
+\node[draw] (c42) at (5,2) {\phantom{$C_0$}};
+\node       (c43) at (5,3) {$\vdots$};
+\node[draw] (c44) at (5,4) {\phantom{$C_0$}};
+\node             at (6,1) {$\dots$};
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c0) -- (c21);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c21) -- (c22);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c0) -- (c31);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c31) -- (c32);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c32) -- (c33);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c0) -- (c11);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c11) -- (c12);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c12) -- (c13);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c13) -- (c14);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c0) -- (c41);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c41) -- (c42);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c42) -- (c43);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] (c43) -- (c44);
+\draw[line join=round,
+decorate, ->,decoration={
+    zigzag,
+    segment length=4,
+    amplitude=.9,post=lineto,
+    post length=2pt
+}] [decorate,decoration={brace,amplitude=10pt}]
+([xshift=5mm]c44.north) -- ([xshift=5mm]c42.south) node [black,midway,xshift=6mm] {$k$};
+\end{tikzpicture}
+\]
+The $k$th approximant contains configurations whose traces all terminate in fewer than $k$ steps. No approximant can contain configuration $C_0$, since there is no bound $k$ on the length of its traces. Yet this configuration will be admitted by a total correctness specification whose postcondition is $\mathit{true}$, since it is the case that each of its traces terminates.
+
+Therefore, in the presence of infinite branching, the fixed point characterisations of total correctness must be weakened to an implication. Preservation of greatest lower bounds is unaffected by infinite branching, so the characterisation of partial correctness remains intact.
+
+\begin{eqnarray*}
+\seqspec{P}c{Q} & ~⇔~ & (\{c\}×P) ⊆ νX\ldotp \SafeOne_Q(X) \\
+\totalspec{P}c{Q} & ~⇐~ & (\{c\}×P) ⊆ μX\ldotp \SafeOne_Q(X) 
+\end{eqnarray*}
+
+\section{Discussion}
+
+Recent work on various Hoare logics for concurrency have used (mildly disguised) greatest fixed point calculations to obtain a partial correctness semantics. See, for example, \cite[Definition~3.2]{vafeiadis11} and \cite[Definition~25]{dinsdale-young+13}. The result in this paper could prove helpful when those program logics are extended to total correctness.
+
+Jacobs and Gries have proposed \emph{general correctness} as a way to unify partial and total correctness~\cite{jacobs+85}. It would be interesting to investigate whether general correctness can be also characterised as a fixed point calculation.
+
+The idea of using the least and greatest fixed point of the same function has been previously exploited by Paulson~\cite[\S3]{paulson97a}, who obtains the set of finite lists from a function's least fixed point, and the set of possibly-infinite (`lazy') lists from its greatest fixed point.
+
+\paragraph{Acknowledgements} This work was supported by EPSRC grant EP/K011499/1. I would like to thank Andreas Lochbihler for several helpful discussions.
+
+\bibliographystyle{abbrv}
+\bibliography{../../John}
+
+
+\end{document}
