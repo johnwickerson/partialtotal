@@ -35,6 +35,7 @@
 \usepackage{mathpartir}
 \usepackage{mathtools}
 \usepackage{bm}
+\usepackage{framed}
 
 \renewcommand\rmdefault{ptm}
 
@@ -44,6 +45,7 @@
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8x]{inputenc}
+\usepackage{url}
 
 \newcommand{\prov}[1][]{\ifthenelse{\equal{#1}{}}{\vdash}{\vdash_{\mbox{\sf\scriptsize #1}}}}
 \newcommand{\seqspec}[3]{\{#1\}\,#2\,\{#3\}}
@@ -128,14 +130,15 @@ investigate conditions under which it holds.
 
 Section~\ref{sec:result} provides characterisations of partial and
 total correctness, that differ only in that the former takes a
-function's greatest fixed point where the latter takes its least, and
-Section~\ref{sec:isabelle} describes how this characterisation is
-proved correct using the Isabelle theorem
-prover. Section~\ref{sec:infinite_branching} describes a condition
-that is necessary for the fixed point characterisation of \emph{total}
+function's greatest fixed point where the latter takes its least.
+Section~\ref{sec:infinite_branching} describes a condition that is
+necessary for the fixed point characterisation of \emph{total}
 correctness to be accurate; namely, that there is no infinite
-branching. We begin, in Section~\ref{sec:preliminaries}, by
-establishing some preliminary definitions.
+branching. Section~\ref{sec:related} discusses related work, mainly
+focussing on how our result extends a similar observation made by
+Clarke in 1979~\cite{clarke79}. We begin, in
+Section~\ref{sec:preliminaries}, by establishing some preliminary
+definitions.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -156,10 +159,10 @@ transition relation. In the following, we suppose that
 $p ∈ \pow(\Config)$ and that $\varphi:\pow(\Config) → \pow(\Config)$
 is a monotone function.
 \[\begin{array}{r@{~~}c@{~~}l}
-\BOX p & = & \{C \mid ∀C'∈\Next(C)\ldotp C' ∈ p\} \\
-\DIAMOND p & = & \{C \mid ∃C'∈\Next(C)\ldotp C' ∈ p\} \\
-μX\ldotp \varphi(X) & = & \bigcap\{S\mid \varphi(S) ⊆ S\} \\
-νX\ldotp \varphi(X) & = & \bigcup\{S\mid S ⊆ \varphi(S)\}
+\BOX p & = & \{C．∀C'∈\Next(C)\ldotp C' ∈ p\} \\
+\DIAMOND p & = & \{C． ∃C'∈\Next(C)\ldotp C' ∈ p\} \\
+μX\ldotp \varphi(X) & = & \bigcap\{S．\varphi(S) ⊆ S\} \\
+νX\ldotp \varphi(X) & = & \bigcup\{S．S ⊆ \varphi(S)\}
 \end{array}\]
 
 \paragraph{Possibly-infinite sequences} Given a set $X$, a
@@ -220,12 +223,14 @@ configuration, the state is in $Q$.
 \section{Main result}
 \label{sec:result}
 
-\begin{definition} We characterise partial/total correctness (with
+\begin{definition}
+\label{defn:safeone}
+We characterise partial/total correctness (with
 respect to postcondition $Q$) as the greatest/least fixed point of the
 function $\SafeOne_Q$, defined as follows:
 \[
 \begin{array}{r@{~~}c@{~~}l}
-\SafeOne_Q(X) &\eqdef& \{\config{c}{σ}\mid  \stuck{\config{c}{σ}} ⇒ σ ∈ Q\} ∩ \Box X.
+\SafeOne_Q(X) &\eqdef& \{\config{c}{σ}．\stuck{\config{c}{σ}} ⇒ σ ∈ Q\} ∩ \Box X.
 \end{array}
 \]
 \end{definition}
@@ -277,10 +282,22 @@ $∀π ∈ \tracesfrom(C_0)．∃j≤M．\length(π) = j$.
 %
 \end{lemma}
 %
-\begin{proof} The lemma holds because $\tracesfrom(C_0)$ is a finite
-set; this observation in turn rests on K\H{o}nig's infinity lemma.
+\begin{proof} We first recall K\H{o}nig's infinity lemma as it applies
+to trees -- that every tree with infinitely-many vertices, each having
+finitely-many successor vertices, has at least one infinite
+trace~\cite{franchella97}:
+\begin{equation}
+\label{eq:konig}
+¬\finite\{C'．C_0 \trans^* C'\} ⇒ (∀C．\finite(\Next(C))) ⇒
+∃π∈\tracesfrom(C_0)．\dom(π) = \nat.
+\end{equation}
+Now, if $C_0∈\terminates$, then it has no infinite traces, and
+hence, by the contrapositive of~\eqref{eq:konig}, the number
+of configurations reachable from $C_0$ is finite. This number provides
+a suitable upper bound $M$ on the length of traces from $C_0$. 
 \end{proof}
-
+%
+\begin{framed}
 \begin{theorem}
 \label{thm:main}
 %
@@ -292,14 +309,15 @@ on our transition system having the property of finite branching.
 \label{thm1_pc} 
 \seqspec{P}c{Q} & = & (\{c\}×P) ⊆ νX\ldotp\SafeOne_Q(X) \\
 \label{thm1_tc1} 
-\totalspec{P}c{Q} & ⇒ & (\{c\}×P) ⊆ μX\ldotp\SafeOne_Q(X) \\
+\totalspec{P}c{Q} & ⇐ & (\{c\}×P) ⊆ μX\ldotp\SafeOne_Q(X) \\
 \label{thm1_tc2}
-\totalspec{P}c{Q} & ~⇐~ & (\{c\}×P) ⊆ μX\ldotp \SafeOne_Q(X)\quad
+\totalspec{P}c{Q} & ~⇒~ & (\{c\}×P) ⊆ μX\ldotp \SafeOne_Q(X)\quad
 \text{if $\finite(\Next(C))$ for all $C$.}
 \end{eqnarray}
 %
 \end{theorem}
-
+\end{framed}
+%
 \begin{proof}
 We begin with the fixed point characterisation of partial
 correctness. To prove \eqref{thm1_pc}, it suffices to prove that
@@ -314,24 +332,32 @@ show, by expanding definitions and invoking standard lemmas about
 reflexive transitive closures, that $\Safe_Q$ is a post-fixed point
 (that is, $\Safe_Q ⊆ \SafeOne_Q (\Safe_Q)$), and hence that it is
 below the \emph{greatest} post-fixed point. To show the $(⊇)$
-direction, we first observe that we can invoke Lemma~\ref{lem:glb-pres}
-to construct $\SafeOne_Q$'s greatest post-fixed point as the
-intersection of a sequence of approximants:
+direction, we first observe that we can invoke
+Lemma~\ref{lem:glb-pres} to construct $\SafeOne_Q$'s greatest
+post-fixed point as the intersection of a sequence of approximants:
 %
 \begin{eqnarray*}
 νX\ldotp \SafeOne_Q(X) &=& \textstyle\bigcap_k\left(\SafeOne_Q^k(\Config)\right).
 \end{eqnarray*}
-(The intuition is that the $k$th approximant only contains
-configurations for which every trace that terminates in fewer than $k$
-steps satisfies the postcondition when it does so.) It then suffices to
-prove that for all $k$ we have
+(The intuition is that approximant $k+1$ contains configurations for
+which every stuck configuration that is reachable in $k$ steps
+satisfies the postcondition.) After expanding the definition of
+$\Safe$, it remains to show:
+%
+\begin{equation}
+\label{eq:pc_mid}
+(∀k．C ∈ \SafeOne_Q^k(\Config)) ⇒ ∀C'．((C \trans^* C') ∧ \stuck{(C')}) ⇒ \snd(C') ∈ Q.
+\end{equation}
+%
+After rewriting $C \trans^* C'$ as $∃n．C \trans^n C'$ and then
+instantiating the $k$ in~\eqref{eq:pc_mid} to $n+1$, it suffices to show, for all $n$:
 \[
-∀C ∈ \SafeOne_Q^k (\Config). ∀π ∈ \tracesfrom(C)．∀j<k．\length(π) = j+1 ⇒ \snd (π_j) ∈ Q,
-\] 
-a fact that can be dispatched via mathematical induction on $k$.
+C ∈ \SafeOne_Q^{n+1}(\Config) ⇒ ∀C'．((C \trans^n C') ∧ \stuck{(C')}) ⇒ \snd(C') ∈ Q,
+\]
+which can be dispatched via mathematical induction on $n$ (with
+$C$ universally quantified in the induction hypothesis).
 
-We now turn to the fixed point characterisation of total correctness,
-which is proved using roughly symmetric reasoning. To
+We now turn to the fixed point characterisation of total correctness. To
 prove~\eqref{thm1_tc1}, it suffices to show
 that
 \begin{eqnarray*}
@@ -345,27 +371,47 @@ the least pre-fixed point to the union of a sequence of approximants
 as follows:
 %
 \begin{eqnarray*}
-μX\ldotp \SafeOne_Q(X) &=& \textstyle\bigcup_n\left(\SafeOne_Q^n(∅)\right).
+μX\ldotp \SafeOne_Q(X) &=& \textstyle\bigcup_k\left(\SafeOne_Q^k(∅)\right).
 \end{eqnarray*}
 %
-(The intuition is that the $k$th approximant contains all
-configurations for which every trace terminates in fewer than $k$
-steps and satisfies the postcondition when it does so.) We then show,
-by mathematical induction on $k$ as before, that
+(The intuition is that approximant $k+1$ contains all configurations
+for which every trace terminates in no more than $k$ steps and satisfies
+the postcondition when it does so.) After expanding the definition of
+$\Safe$, and invoking Lemma~\ref{lem:longest-trace} to obtain the
+length $M$ of $C$'s longest trace, it remains to show:
+%
+\begin{equation}
+\label{eq:tc_mid}
+\begin{array}{l}
+(∃M．∀π ∈ \tracesfrom(C)．∃j≤M．\length(π) = j) ⇒ {}\\
+(∀C'．((C \trans^* C') ∧ \stuck{(C')}) ⇒ \snd(C') ∈ Q) ⇒ (∃k．C ∈ \SafeOne_Q^k(\emptyset)).
+\end{array}
+\end{equation}
+%
+We choose $M$ as a witness for $k$ in~\eqref{eq:tc_mid}. It then
+suffices to show, for all $M$:
 %
 \[
-∀C．(∀π ∈ \tracesfrom(C)． ∃j < k．\length(π) = j+1 ∧ \snd (π_j) ∈ Q) ⇒ C ∈ \SafeOne_Q^{k+1}(\emptyset),
+\begin{array}{l}
+(∀π ∈ \tracesfrom(C)．∃j≤M．\length(π) = j) ⇒ {}\\
+(∀C'．((C \trans^* C') ∧ \stuck{(C')}) ⇒ \snd(C') ∈ Q) ⇒ C ∈ \SafeOne_Q^M(\emptyset).
+\end{array}
 \]
-which completes the proof. \qed
+%
+With a little further algebraic manipulation we arrive at:
+\[
+(∀π ∈ \tracesfrom(C)．∃j≤M．\length(π) = j ∧ \snd(\pi_{j-1}) ∈ Q) ⇒ C ∈ \SafeOne_Q^M(\emptyset)
+\]
+which can be dispatched by mathematical induction on $M$, generalising
+$C$ as before, thus completing the proof.\qed
 \end{proof}
 
-\section{Proof mechanisation}
-\label{sec:isabelle}
-
-The proof presented in the previous section has been formalised in the
-Isabelle theorem prover, with the exception of the following lemma,
-which has currently only been proved `by hand'. 
-
+\paragraph{Proof mechanisation} Our main theorem and its accompanying
+lemmas have been formalised and proved in the Isabelle theorem prover,
+with the exception of Lemma~\ref{lem:longest-trace}, of which we
+currently only have a hand proof. The proof relies on K\H{o}nig's
+infinity lemma, which we found to be difficult to formalise. The
+proof is available online.\footnote{\url{http://www.doc.ic.ac.uk/~jpw48/Partial_Total_Correctness_As_Fixed_Points.thy}}
 
 \section{On infinite branching}
 \label{sec:infinite_branching}
@@ -374,10 +420,14 @@ If the $\trans$ relation allows infinite branching -- that is, if a
 configuration can have infinitely many next configurations to choose
 from -- then the least fixed point calculation does not coincide with
 total correctness. The technical reason for the failure is that
-$\SafeOne_Q$ no longer preserves least upper bounds. Intuitively, the
+$\SafeOne_Q$ no longer preserves least upper bounds
+(cf.~Lemma~\ref{lem:lub-pres}). Intuitively, the
 failure can be explained by the following counterexample.
+%
 \[
-\begin{tikzpicture}
+\begin{tikzpicture}[zaggy/.style={line join=round,
+decorate, ->,decoration={zigzag, segment length=4,
+amplitude=.9,post=lineto, post length=2pt}}]
 \node[draw] (c0) at (3,0) {$C_0$};
 \node[draw] (c21) at (1,1) {$C_1$};
 \node[draw] (c22) at (1,2) {\phantom{$C_0$}};
@@ -394,178 +444,106 @@ failure can be explained by the following counterexample.
 \node       (c43) at (5,3) {$\vdots$};
 \node[draw] (c44) at (5,4) {\phantom{$C_0$}};
 \node             at (6,1) {$\dots$};
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c0) -- (c21);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c21) -- (c22);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c0) -- (c31);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c31) -- (c32);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c32) -- (c33);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c0) -- (c11);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c11) -- (c12);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c12) -- (c13);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c13) -- (c14);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c0) -- (c41);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c41) -- (c42);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c42) -- (c43);
-\draw[line join=round,
-decorate, ->,decoration={
-    zigzag,
-    segment length=4,
-    amplitude=.9,post=lineto,
-    post length=2pt
-}] (c43) -- (c44);
+\draw[zaggy] (c0) to [in=270,out=180] (c21);
+\draw[zaggy] (c21) -- (c22);
+\draw[zaggy] (c0) to [in=270,out=180] (c31);
+\draw[zaggy] (c31) -- (c32);
+\draw[zaggy] (c32) -- (c33);
+\draw[zaggy] (c0) -- (c11);
+\draw[zaggy] (c11) -- (c12);
+\draw[zaggy] (c12) -- (c13);
+\draw[zaggy] (c13) -- (c14);
+\draw[zaggy] (c0) to[in=270,out=0] (c41);
+\draw[zaggy] (c41) -- (c42);
+\draw[zaggy] (c42) -- (c43);
+\draw[zaggy] (c43) -- (c44);
 \draw[decorate,decoration={brace,amplitude=10pt}]
-([xshift=5mm]c44.north) -- ([xshift=5mm]c42.south) node [black,midway,xshift=6mm] {$k$};
+([xshift=5mm]c44.north) -- ([xshift=5mm]c42.south) node
+[black,midway,xshift=6mm] {$k$};
 \end{tikzpicture}
 \]
-The $k$th approximant contains configurations whose traces all
+Recall that approximant $k$ contains configurations whose traces all
 terminate in fewer than $k$ steps. No approximant can contain
-configuration $C_0$, since there is no bound $k$ on the length of its
+configuration $C_0$, since there is no bound on the length of its
 traces. Yet this configuration will be admitted by a total correctness
 specification whose postcondition is $\mathit{true}$, since it is the
 case that each of its traces terminates.
 
 Therefore, in the presence of infinite branching, the fixed point
-characterisations of total correctness must be weakened to an
+characterisation of total correctness must be weakened to an
 implication. Preservation of greatest lower bounds is unaffected by
 infinite branching, so the characterisation of partial correctness
 remains intact.
-
-\begin{eqnarray*}
-\seqspec{P}c{Q} & ~⇔~ & (\{c\}×P) ⊆ νX\ldotp \SafeOne_Q(X) \\
-\totalspec{P}c{Q} & ~⇐~ & (\{c\}×P) ⊆ μX\ldotp \SafeOne_Q(X) 
-\end{eqnarray*}
 
 \section{Related work}
 \label{sec:related}
 
 Clarke~\cite{clarke79} was the first to study the correspondence
 between greatest/least fixed points and partial/total correctness. He
-remarks that
-\begin{quote}the fixedpoints of $Γ$ form a complete lattice under the
-natural partial ordering on $\pow(\State)$. The top element of this
-lattice is the weakest precondition for partial correctness and the
-bottom element is the weakest precondition for total
-correctness.~\cite[p.~279]{clarke79}
-\end{quote} 
+remarks, in a 1979 article, that 
+%
+\begin{quote}the fixedpoints of $\Gamma$ form a complete
+lattice under the natural partial ordering on $\pow(\State)$. The top
+element of this lattice is the weakest precondition for partial
+correctness and the bottom element is the weakest precondition for
+total correctness.~\cite[p.~279, footnote]{clarke79} \end{quote}
 %
 We note three ways in which the current work extends on Clarke's
-original observation. First, Clarke's work is in the setting of a
+original observation. First, Clarke works in the setting of a
 particular programming language that provides syntax for sequencing,
-conditionals, assignment and recursive calls to parameterless
+conditionals, assignment, and recursive calls to parameterless
 procedures. In this paper, we need not tackle issues of programming
 language syntax, since we work at the level of arbitrary transition
-systems. Second, Clarke's work is in the setting of a big-step
-semantics; that is, the meaning of each programming construct maps an
-initial state directly to a final state. We work with a small-step
-semantics (as described by a transition system), which means that our
-approach handles parallel programs without any further work. Big-step
-semantics is well-known to be unable to handle parallelism, as
-acknowledged by Clarke, who remarks that he `[is] currently attempting
-to extend this fixedpoint theory to additional programming features
-such as parallelism'~\cite[p.~292]{clarke79}. The definition of total
-correctness in a small-step setting requires more nuance than in a
-big-step setting, where it is trivial. Third, Clarke's work applies
-only in a deterministic setting: a program has either a single final
-state, or none at all. We allow for highly non-deterministic programs,
-and only restrict the amount of non-determinism in the case of total
-correctness.
+systems. Second, Clarke's work applies only in a deterministic
+setting: a program has either a single final state, or none at all. We
+allow for highly non-deterministic programs, and only restrict to
+finite non-determinism in the case of total correctness. Third,
+Clarke's work is in the setting of a big-step semantics; that is, the
+meaning of each programming construct maps an initial state directly
+to a final state. We work with a small-step semantics (as described by
+a transition system), which means that our approach handles parallel
+programs without further adaptation. Big-step semantics is well-known
+to be unable to handle parallelism, as acknowledged by Clarke, who
+remarks that he `[is] currently attempting to extend this fixedpoint
+theory to additional programming features such as
+parallelism'~\cite[p.~292]{clarke79}. The definition of total
+correctness in a big-step and deterministic setting is trivial, and
+hence Clarke's $\Gamma$ functional is straightforward -- this perhaps
+explains why Clarke consigned the observation we quote above to a mere
+footnote. Our functional, on the other hand, which we call $\SafeOne$,
+is fairly subtle: experience shows that even minor modifications of
+Definition~\ref{defn:safeone} quickly lead to either the least or the
+greatest fixed point becoming degenerate.
 
-Recent work on various Hoare logics for concurrency have used (mildly
-disguised) greatest fixed point calculations to obtain a partial
-correctness semantics. See, for example,
+Regarding other influences on this work: the idea of using the least
+and greatest fixed point of the same function has been previously
+exploited by Paulson~\cite[\S3]{paulson97a}, who obtains the set of
+finite lists from a function's least fixed point, and the set of
+possibly-infinite (`lazy') lists from its greatest fixed point.
+
+Recent work on various Hoare logics for concurrency provide avenues
+for further development of the current work. These logics typically
+use (mildly disguised) greatest fixed point calculations to obtain a
+partial correctness semantics; see, for example,
 \cite[Definition~3.2]{vafeiadis11} and
-\cite[Definition~25]{dinsdale-young+13}. The result in this paper
-could prove helpful when those program logics are extended to total
-correctness.
+\cite[Definition~25]{dinsdale-young+13}. If these logics were extended
+to handle total correctness, the result presented in this paper could
+ease the transition.
 
-Jacobs and Gries have proposed \emph{general correctness} as a way to
-unify partial and total correctness~\cite{jacobs+85}. It would be
-interesting to investigate whether general correctness can be also
-characterised as a fixed point calculation.
-
-The idea of using the least and greatest fixed point of the same
-function has been previously exploited by
-Paulson~\cite[\S3]{paulson97a}, who obtains the set of finite lists
-from a function's least fixed point, and the set of possibly-infinite
-(`lazy') lists from its greatest fixed point.
-
+Another direction for future work is provided by Jacobs and Gries, who
+have proposed \emph{general correctness} as a way to unify partial and
+total correctness~\cite{jacobs+85}. It would be interesting to
+investigate whether general correctness can be also characterised as a
+fixed point calculation.
+\[
+\text{---}
+\]
 \paragraph{Acknowledgements} This work was supported by EPSRC grant
 EP/K011499/1. I would like to thank Edmund Clarke, Alastair Donaldson,
 Tony Hoare, Peter Lammich, and Andreas Lochbihler for helpful feedback
 and discussions.
 
+\newpage
 \bibliographystyle{abbrv}
 \bibliography{/Users/jpw48/Dropbox/John}
 
