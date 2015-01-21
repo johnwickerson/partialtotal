@@ -108,7 +108,7 @@ programming language admits no infinite branching.
 \section{Introduction}
 
 In the context of Hoare Logic~\cite{hoare69}, a (possibly
-non-deterministic, possibly non-terminating) program satisfies a
+non-deterministic, and possibly non-terminating) program satisfies a
 \emph{total correctness} specification when each of its traces from a
 state that satisfies the given precondition reaches a terminal state
 satisfying the given postcondition within a finite number of execution
@@ -125,7 +125,7 @@ infinite.
 
 The descriptions above have been deliberately crafted to emphasise a
 connection between total/partial correctness and least/greatest fixed
-points. This paper seeks to state this connection precisely, and
+points. This paper seeks to state that connection precisely, and
 investigate conditions under which it holds.
 
 Section~\ref{sec:result} provides characterisations of partial and
@@ -136,9 +136,8 @@ necessary for the fixed point characterisation of \emph{total}
 correctness to be accurate; namely, that there is no infinite
 branching. Section~\ref{sec:related} discusses related work, mainly
 focussing on how our result extends a similar observation made by
-Clarke in 1979~\cite{clarke79}. We begin, in
-Section~\ref{sec:preliminaries}, by establishing some preliminary
-definitions.
+Edmund Clarke in 1979. We begin, in Section~\ref{sec:preliminaries},
+by establishing some preliminary definitions.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -407,11 +406,12 @@ $C$ as before, thus completing the proof.\qed
 \end{proof}
 
 \paragraph{Proof mechanisation} Our main theorem and its accompanying
-lemmas have been formalised and proved in the Isabelle theorem prover,
-with the exception of Lemma~\ref{lem:longest-trace}, of which we
-currently only have a hand proof. The proof relies on K\H{o}nig's
-infinity lemma, which we found to be difficult to formalise. The
-proof is available online.\footnote{\url{http://www.doc.ic.ac.uk/~jpw48/Partial_Total_Correctness_As_Fixed_Points.thy}}
+lemmas have been formalised and proved in the Isabelle theorem
+prover~\cite{nipkow+02}, with the exception of
+Lemma~\ref{lem:longest-trace}, of which we currently only have a hand
+proof. The proof relies on K\H{o}nig's infinity lemma, which we found
+to be difficult to formalise. The proof is available
+online.\footnote{\url{http://www.doc.ic.ac.uk/~jpw48/Partial_Total_Correctness_As_Fixed_Points.thy}}
 
 \section{On infinite branching}
 \label{sec:infinite_branching}
@@ -478,9 +478,9 @@ remains intact.
 \section{Related work}
 \label{sec:related}
 
-Clarke~\cite{clarke79} was the first to study the correspondence
-between greatest/least fixed points and partial/total correctness. He
-remarks, in a 1979 article, that 
+Edmund Clarke~\cite{clarke79} was probably the first to study the
+correspondence between greatest/least fixed points and partial/total
+correctness. He remarks, in a 1979 article, that
 %
 \begin{quote}the fixedpoints of $\Gamma$ form a complete
 lattice under the natural partial ordering on $\pow(\State)$. The top
